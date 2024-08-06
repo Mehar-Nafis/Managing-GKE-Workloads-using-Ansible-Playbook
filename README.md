@@ -33,25 +33,11 @@ Automations:
 - [kubernetes Python package](https://pypi.org/project/kubernetes/)
 - [Ansible Kubernetes Module requirements](https://docs.ansible.com/ansible/latest/collections/kubernetes/core/k8s_module.html#requirements)
 
-## Environment
-
-The local environment used to test the scripts had the following software:
-
-| Software | Version |
-|--|--|
-| macOS Ventura | 13.2.1 |
-| ansible-core | 2.14.13 |
-| Python | 3.9.6 |
-| Python lib `requests` | 2.28.2 |
-| Python lib `google-auth` | 2.16.2 |
-| Python lib `kubernetes` | 26.1.0 |
-| gcloud sdk | 422.0.0 |
 
 ## Ansible Directory Layout
 
 ```bash
 .
-├── LICENSE                        # license file
 ├── README.md                      # main documentation file
 └── ansible                        # Ansible top-level folder
     ├── ansible.cfg                # Ansible config file
@@ -132,24 +118,6 @@ Execute the following command to provision the `Kubernetes` cluster:
 ansible-playbook ansible/create-k8s.yml -i ansible/inventory/<your-inventory-filename>
 ```
 
-**Output:**
-
-```text
-PLAY [create infra] ****************************************************************
-
-TASK [network : create GCP network] ************************************************
-changed: [localhost]
-
-TASK [k8s : create k8s cluster] ****************************************************
-changed: [localhost]
-
-TASK [k8s : create k8s node pool] **************************************************
-changed: [localhost]
-
-PLAY RECAP *************************************************************************
-localhost: ok=3  changed=3  unreachable=0  failed=0  skipped=0  rescued=0  ignored=0 
-```
-
 ### Connecting to the Kubernetes cluster
 
 Use the [gcloud](https://cloud.google.com/sdk/gcloud) command-line tool to connect to the Kubernetes cluster:
@@ -160,26 +128,12 @@ gcloud container clusters get-credentials <cluster_name> --zone <zone> --project
 
 _Note:_ replace the variables with the values used in the inventory file. Also, it's possible to retrieve this command from the `Kubernetes Cluster` page on `GCP` console.
 
-**Output:**
-
-```text
-Fetching cluster endpoint and auth data.
-kubeconfig entry generated for devops-platform.
-```
-
 ### Using the Kubernetes cluster
 
 After connecting to the cluster use the [kubectl](https://kubernetes.io/docs/reference/kubectl/overview/) command-line tool to control the cluster.
 
 ```text
 kubectl get nodes
-```
-
-**Output:**
-
-```text
-NAME                                                STATUS   ROLES    AGE   VERSION
-gke-<cluster_name>-node-pool-e058a106-zn2b          Ready    <none>   10m   v1.18.12-gke.1210
 ```
 
 ## Deploying an application
@@ -197,21 +151,6 @@ Execute the following command to deploy the `Nginx` web-server:
 
 ```bash
 ansible-playbook ansible/deploy-app-k8s.yml -i ansible/inventory/<your-inventory-filename>
-```
-
-**Output:**
-
-```text
-PLAY [deploy application] **********************************************************
-
-TASK [k8s-deployment : Create a k8s namespace] *************************************
-changed: [localhost]
-
-TASK [k8s-deployment : Create a k8s service to expose nginx] ***********************
-changed: [localhost]
-
-PLAY RECAP *************************************************************************
-localhost: ok=2  changed=2  unreachable=0  failed=0  skipped=0  rescued=0  ignored=0 
 ```
 
 ### Accessing the Nginx
@@ -239,26 +178,6 @@ Execute the following command to deploy the `Nginx` web-server:
 ansible-playbook ansible/secure-app-k8s.yml -i ansible/inventory/<your-inventory-filename>
 ```
 
-**Output:**
-
-```text
-PLAY [deploy application] **********************************************************************
-
-TASK [k8s-policies : Create busybox pod on Nginx namespace] ************************************
-ok: [localhost]
-
-TASK [k8s-policies : Create external namespace] ************************************************
-ok: [localhost]
-
-TASK [k8s-policies : Create busybox pod on External namespace] *********************************
-ok: [localhost]
-
-TASK [k8s-policies : Create network policy to deny ingress] ************************************************************************************************
-changed: [localhost]
-
-PLAY RECAP *************************************************************************************
-localhost: ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
-```
 
 ### Testing communication between the pods
 
@@ -276,25 +195,10 @@ Use the `busybox` container to connect to the `nginx` pod:
 kubectl -n nginx exec busybox -- wget --spider 10.40.1.10
 ```
 
-**Output:**
-
-```text
-Connecting to 10.40.1.10 (10.40.1.10:80)
-remote file exists
-```
-
 #### From a pod in the External namespace
 
 ```bash
 kubectl -n external exec busybox -- wget --spider 10.40.1.13
-```
-
-**Output:**
-
-```text
-Connecting to 10.40.1.13 (10.40.1.13:80)
-wget: can't connect to remote host (10.40.1.13): Connection timed out
-command terminated with exit code 1
 ```
 
 > This is the expected behaviour because our goal is to only allow access from pods in the nginx namespace.
@@ -322,37 +226,6 @@ Execute the following command to deploy the `Kafka` cluster:
 ansible-playbook ansible/deploy-statefulset-k8s.yml -i ansible/inventory/gcp.yml
 ```
 
-**Output:**
-
-PLAY [deploy statefulset application] **********************************************************
-
-TASK [k8s-statefulset : create namespace zookeeper] ********************************************
-changed: [localhost]
-
-TASK [k8s-statefulset : create zookeeper-headless service] *************************************
-changed: [localhost]
-
-TASK [k8s-statefulset : create zookeeper service] **********************************************
-changed: [localhost]
-
-TASK [k8s-statefulset : deploy apache zookeeper] ***********************************************
-changed: [localhost]
-
-TASK [k8s-statefulset : wait for zookeeper pods to be running] ************************************************************************************************
-ok: [localhost]
-
-TASK [k8s-statefulset : create namespace kafka] ************************************************
-changed: [localhost]
-
-TASK [k8s-statefulset : create kafka service for Broker] ***************************************
-changed: [localhost]
-
-TASK [k8s-statefulset : deploy apache kafka Broker 1] ******************************************
-changed: [localhost]
-
-PLAY RECAP *************************************************************************************
-localhost: ok=8    changed=7    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
-
 ### Testing Kafka
 
 Connect to the `broker` pod, create, and list a `topic`.
@@ -366,22 +239,8 @@ kubectl exec -it -n kafka kafka-broker-0 -- bash
 ## Cleaning up
 
 Execute the following command to destroy the `Kubernetes` cluster:
-
+```
 `ansible-playbook ansible/destroy-k8s.yml -i ansible/inventory/<your-inventory-filename>`
-
-**Output:**
-
-```text
-PLAY [destroy infra] *********************************************************************
-
-TASK [destroy_k8s : destroy k8s cluster] *************************************************
-changed: [localhost]
-
-TASK [destroy_network : destroy GCP network] *********************************************
-changed: [localhost]
-
-PLAY RECAP *******************************************************************************
-localhost: ok=2   changed=2   unreachable=0   failed=0   skipped=0   rescued=0   ignored=0 
 ```
 
 ## References
